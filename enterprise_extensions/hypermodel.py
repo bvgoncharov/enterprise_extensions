@@ -96,7 +96,6 @@ class HyperModel(object):
         return active_lnlike
 
     def get_lnprior(self, x):
-
         # find model index variable
         idx = list(self.param_names).index("nmodel")
         nmodel = int(np.rint(x[idx]))
@@ -105,12 +104,13 @@ class HyperModel(object):
             return -np.inf
         else:
             lnP = 0
-            for p in self.models.values():
-                q = []
-                for par in p.param_names:
-                    idx = self.param_names.index(par)
-                    q.append(x[idx])
-                lnP += p.get_lnprior(np.array(q))
+            pta = self.models[nmodel]
+
+            qq = []
+            for par in pta.param_names:
+                idx = self.param_names.index(par)
+                qq.append(x[idx])
+            lnP += pta.get_lnprior(np.array(qq))
 
             return lnP
 
@@ -139,8 +139,8 @@ class HyperModel(object):
         x0 = [np.array(p.sample()).ravel().tolist() for p in self.models[0].params]
         uniq_params = [str(p) for p in self.models[0].params]
 
-        for model in self.models.values():
-            param_diffs = np.setdiff1d([str(p) for p in model.params], uniq_params)
+        for key, model in sorted(self.models.items(), reverse=True):
+            param_diffs = np.setdiff1d([str(p.name) for p in model.params], uniq_params)
             mask = np.array([str(p) in param_diffs for p in model.params])
             x0.extend(
                 [
@@ -202,6 +202,8 @@ class HyperModel(object):
         outdir="chains",
         resume=False,
         sample_nmodel=True,
+        add_sampling_groups=False, 
+        add_jump_proposals=False,
         empirical_distr=None,
         groups=None,
         human=None,
@@ -247,7 +249,7 @@ class HyperModel(object):
             cov = np.diag(np.ones(ndim) * 1.0**2)  # used to be 0.1
 
         # parameter groupings
-        if groups is None:
+        if groups is None and add_sampling_groups:
             groups = self.get_parameter_groups()
 
         sampler = ptmcmc(
@@ -263,6 +265,9 @@ class HyperModel(object):
         )
 
         save_runtime_info(self, sampler.outDir, human)
+
+        if not add_jump_proposals:
+            return sampler
 
         # additional jump proposals
         jp = JumpProposal(self, self.snames, empirical_distr=empirical_distr)

@@ -1,4 +1,7 @@
 # enterprise_extensions
+
+__Important__: this fork of `enterprise_extensions` is experimental. It enables the use of different priors for the same parameters in `HyperModel` for model selection. However, adding different parameters to different models is no longer supported.
+
 A set of extensions, utilities, and scripts for the [enterprise](https://github.com/nanograv/enterprise) PTA analysis code.
 
 ## installation
